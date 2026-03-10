@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ITSafe – Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
+  <style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0D16;--sur:#111827;--sur2:#1A2035;--bor:rgba(255,255,255,.08);
+  --pri:#E11D48;--pri-lt:#FB7185;--acc:#F59E0B;
+  --tx:#E2E8F0;--mu:#64748B;--su:#94A3B8;
+  --green:#22C55E;--red:#EF4444;--yellow:#F59E0B;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+
+/* ── LOGIN ── */
+#loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;
+  background:radial-gradient(ellipse at 25% 50%,rgba(225,29,72,.1),transparent 60%)}
+.login-box{background:var(--sur);border:1px solid var(--bor);border-radius:20px;
+  padding:2.5rem 2rem;width:min(380px,94vw);text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.6)}
+.login-logo{font-size:3rem;color:var(--pri-lt);margin-bottom:.5rem}
+.login-box h1{font-family:'DM Serif Display',serif;font-size:1.9rem;margin-bottom:.25rem}
+.login-box p{color:var(--mu);font-size:.85rem;margin-bottom:1.75rem}
+.l-inp{width:100%;padding:.75rem 1rem;border-radius:10px;border:1.5px solid var(--bor);
+  background:var(--sur2);color:var(--tx);font-size:.95rem;margin-bottom:.9rem;font-family:inherit;
+  transition:border .2s}
+.l-inp:focus{outline:none;border-color:var(--pri-lt)}
+.l-btn{width:100%;padding:.85rem;border-radius:10px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--pri),#9F1239);color:#fff;
+  font-size:.95rem;font-weight:700;font-family:inherit;transition:opacity .2s}
+.l-btn:hover{opacity:.9}
+.l-err{color:var(--red);font-size:.82rem;margin-top:.75rem;min-height:1.1em}
+.l-hint{color:var(--mu);font-size:.72rem;margin-top:1rem;opacity:.6}
+
+/* ── DASHBOARD ── */
+#dash{display:none}
+.layout{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sb{width:220px;background:var(--sur);border-right:1px solid var(--bor);
+  display:flex;flex-direction:column;padding:1.25rem 0;position:fixed;
+  top:0;left:0;height:100vh;z-index:100}
+.sb-brand{padding:0 1.25rem 1.25rem;border-bottom:1px solid var(--bor);margin-bottom:.75rem}
+.sb-brand .bn{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--pri-lt)}
+.sb-brand .bs{font-size:.65rem;color:var(--mu)}
+.sb-nav{flex:1;display:flex;flex-direction:column;gap:.2rem;padding:0 .65rem}
+.sb-lnk{display:flex;align-items:center;gap:.65rem;padding:.6rem .85rem;border-radius:9px;
+  color:var(--mu);font-size:.85rem;cursor:pointer;border:none;background:none;
+  font-family:inherit;transition:all .18s;text-align:left;width:100%}
+.sb-lnk:hover,.sb-lnk.on{background:rgba(225,29,72,.12);color:var(--pri-lt)}
+.sb-lnk i{width:16px;text-align:center}
+.sb-bot{padding:.85rem .65rem;border-top:1px solid var(--bor);margin-top:auto}
+.sb-out{width:100%;padding:.6rem;border-radius:9px;border:1px solid var(--bor);
+  background:none;color:var(--mu);font-family:inherit;cursor:pointer;font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;gap:.45rem;transition:all .18s}
+.sb-out:hover{border-color:var(--red);color:var(--red)}
+
+/* Main */
+.main{margin-left:220px;padding:1.75rem;width:calc(100% - 220px)}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:.75rem}
+.topbar h2{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.top-right{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
+.badge-user{background:var(--sur2);padding:.35rem .8rem;border-radius:20px;
+  font-size:.75rem;color:var(--mu);border:1px solid var(--bor)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.85rem;margin-bottom:1.5rem}
+.st{background:var(--sur);border:1px solid var(--bor);border-radius:13px;padding:1.1rem 1.35rem}
+.st-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:.85rem;margin-bottom:.35rem}
+.st-n{font-size:1.9rem;font-weight:700;font-family:'DM Serif Display',serif}
+.st-l{font-size:.72rem;color:var(--mu)}
+
+/* Panel */
+.panel{background:var(--sur);border:1px solid var(--bor);border-radius:14px;margin-bottom:1.25rem;overflow:hidden}
+.ph{padding:.9rem 1.35rem;border-bottom:1px solid var(--bor);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem}
+.ph h3{font-size:.92rem;font-weight:600;display:flex;align-items:center;gap:.45rem}
+.pb{padding:1.1rem 1.35rem}
+
+/* Table */
+.tw{overflow-x:auto}
+table.at{width:100%;border-collapse:collapse;font-size:.8rem}
+.at th{text-align:left;padding:.6rem .8rem;color:var(--mu);font-weight:500;
+  border-bottom:1px solid var(--bor);white-space:nowrap;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em}
+.at td{padding:.6rem .8rem;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:middle;max-width:180px;word-break:break-word}
+.at tr:last-child td{border-bottom:none}
+.at tbody tr:hover{background:rgba(225,29,72,.04)}
+
+/* Badges */
+.bdg{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .55rem;border-radius:20px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.bv{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.bp{background:rgba(245,158,11,.1);color:#fcd34d;border:1px solid rgba(245,158,11,.2)}
+.b-verbal{background:rgba(180,83,9,.2);color:#fcd34d}
+.b-cyber {background:rgba(14,116,144,.2);color:#67e8f9}
+.b-fisik {background:rgba(185,28,28,.2);color:#fca5a5}
+.b-paksa {background:rgba(124,45,18,.2);color:#fb923c}
+.b-perkosa{background:rgba(76,5,25,.3);color:#fda4af}
+.b-lain  {background:rgba(100,116,139,.15);color:#94a3b8}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .8rem;border-radius:7px;
+  border:none;cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:500;transition:all .18s}
+.btn-p{background:linear-gradient(135deg,var(--pri),#9F1239);color:#fff}
+.btn-o{background:none;border:1px solid var(--bor);color:var(--tx)}
+.btn-o:hover{border-color:var(--pri-lt);color:var(--pri-lt)}
+.btn-g{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.2)}
+.btn-g:hover{background:rgba(34,197,94,.22)}
+.btn-r{background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.2)}
+.btn-r:hover{background:rgba(239,68,68,.25)}
+.btn-sm{padding:.25rem .55rem;font-size:.72rem}
+
+/* Filter bar */
+.fb{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.fb input,.fb select{padding:.4rem .75rem;border-radius:7px;border:1px solid var(--bor);
+  background:var(--sur2);color:var(--tx);font-size:.78rem;font-family:inherit}
+.fb input:focus,.fb select:focus{outline:none;border-color:var(--pri-lt)}
+
+/* Map */
+#adminMap{height:400px;border-radius:11px;overflow:hidden}
+
+/* Drawer */
+.drw-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;
+  align-items:flex-start;justify-content:flex-end}
+.drw-ov.open{display:flex}
+.drw{width:min(500px,96vw);height:100vh;background:var(--sur);border-left:1px solid var(--bor);
+  overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;
+  animation:si .22s ease}
+@keyframes si{from{transform:translateX(100%)}to{transform:none}}
+.drw-hd{display:flex;align-items:center;justify-content:space-between}
+.drw-hd h3{font-size:1.05rem;font-weight:600}
+.drw-x{background:none;border:none;color:var(--mu);font-size:1.1rem;cursor:pointer;padding:.2rem .5rem}
+.df{margin-bottom:.75rem}
+.df label{display:block;font-size:.68rem;color:var(--mu);margin-bottom:.25rem;
+  text-transform:uppercase;letter-spacing:.05em}
+.df .dv{font-size:.88rem;line-height:1.6}
+.df textarea,.df input,.df select{width:100%;padding:.5rem .75rem;border-radius:7px;
+  border:1px solid var(--bor);background:var(--sur2);color:var(--tx);
+  font-size:.85rem;font-family:inherit;resize:vertical}
+.df textarea:focus,.df input:focus,.df select:focus{outline:none;border-color:var(--pri-lt)}
+.drw-act{display:flex;gap:.5rem;margin-top:.25rem;flex-wrap:wrap}
+
+/* Mini charts */
+.mc{display:flex;flex-direction:column;gap:.45rem;padding:.25rem 0}
+.mc-row{display:flex;align-items:center;gap:.6rem;font-size:.78rem}
+.mc-lbl{width:150px;flex-shrink:0;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-bw{flex:1;background:var(--sur2);border-radius:99px;height:7px}
+.mc-b{height:7px;border-radius:99px;transition:width .6s ease}
+.mc-cnt{width:26px;text-align:right;font-weight:600;flex-shrink:0}
+
+/* Confirm modal */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;
+  align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--sur);border:1px solid var(--bor);border-radius:14px;
+  padding:1.75rem;width:min(360px,92vw);text-align:center}
+.modal h3{margin-bottom:.6rem}
+.modal p{color:var(--mu);font-size:.87rem;margin-bottom:1.35rem}
+.modal-act{display:flex;gap:.65rem;justify-content:center}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--sur2);
+  border:1px solid var(--bor);padding:.7rem 1.2rem;border-radius:9px;
+  font-size:.85rem;display:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  animation:fu .28s ease}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* Overview grid */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+.empty-a{text-align:center;padding:2rem;color:var(--mu)}
+.empty-a i{font-size:2rem;opacity:.25;display:block;margin-bottom:.5rem}
+
+@media(max-width:768px){
+  .sb{transform:translateX(-100%)}
+  .sb.open{transform:none}
+  .main{margin-left:0;width:100%;padding:1rem}
+  .ov-grid{grid-template-columns:1fr}
+}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginWrap">
+  <div class="login-box">
+    <div class="login-logo"><i class="fas fa-shield-halved"></i></div>
+    <h1>ITSafe Admin</h1>
+    <p>Masukkan password untuk mengakses dashboard laporan.</p>
+    <input class="l-inp" type="password" id="pwInput" placeholder="Password admin"
+           onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="l-btn" onclick="doLogin()"><i class="fas fa-right-to-bracket"></i> Masuk</button>
+    <p class="l-err" id="loginErr"></p>
+    <p class="l-hint">Khusus Admin Kelompok 7!<code></code></p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <div class="layout">
+
+    <aside class="sb" id="sb">
+      <div class="sb-brand">
+        <div class="bn">ITSafe</div>
+        <div class="bs">Admin Dashboard</div>
+      </div>
+      <nav class="sb-nav">
+        <button class="sb-lnk on" onclick="showTab('overview')"><i class="fas fa-gauge-high"></i> Overview</button>
+        <button class="sb-lnk"    onclick="showTab('laporan')"><i class="fas fa-database"></i> Data Laporan</button>
+        <button class="sb-lnk"    onclick="showTab('peta')"><i class="fas fa-map-location-dot"></i> Peta Admin</button>
+        <button class="sb-lnk"    onclick="showTab('statistik')"><i class="fas fa-chart-bar"></i> Statistik</button>
+      </nav>
+      <div class="sb-bot">
+        <button class="sb-out" onclick="doLogout()"><i class="fas fa-right-from-bracket"></i> Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <h2 id="tabTitle">Overview</h2>
+        <div class="top-right">
+          <span class="badge-user" id="badgeUser">Admin</span>
+          <button class="btn btn-o btn-sm" onclick="exportCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+          <button class="btn btn-o btn-sm" onclick="exportGeoJSON()"><i class="fas fa-map"></i> GeoJSON</button>
+          <button class="btn btn-o btn-sm" onclick="loadDemoData()"><i class="fas fa-flask"></i> Demo</button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div id="tab-overview">
+        <div class="stats" id="statsRow"></div>
+        <div class="ov-grid">
+          <div class="panel">
+            <div class="ph"><h3><i class="fas fa-clock"></i> Laporan Terbaru</h3></div>
+            <div class="pb" id="recentList"></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h3><i class="fas fa-chart-bar"></i> Distribusi Insiden</h3></div>
+            <div class="pb"><div class="mc" id="chartInsiden"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAPORAN -->
+      <div id="tab-laporan" style="display:none">
+        <div class="panel">
+          <div class="ph">
+            <h3><i class="fas fa-database"></i> Data Laporan Masuk <span id="rowCount" style="color:var(--mu);font-weight:400;font-size:.8rem"></span></h3>
+            <div class="fb">
+              <input type="text" id="srch" placeholder="Cari…" oninput="renderTable()"/>
+              <select id="fInsiden" onchange="renderTable()">
+                <option value="">Semua Insiden</option>
+                <option>Pelecehan Verbal</option><option>Pelecehan Non-verbal / Cyber</option>
+                <option>Pelecehan Fisik</option><option>Pemaksaan / Ancaman</option>
+                <option>Pemerkosaan</option><option>Lainnya</option>
+              </select>
+              <select id="fStatus" onchange="renderTable()">
+                <option value="">Semua Status</option>
+                <option value="pending">Pending</option>
+                <option value="verified">Terverifikasi</option>
+              </select>
+            </div>
+          </div>
+          <div class="tw">
+            <table class="at">
+              <thead><tr>
+                <th>#</th><th>Tgl Lapor</th><th>Kelamin</th><th>Status Korban</th>
+                <th>Jenis Insiden</th><th>Lokasi</th><th>Tgl Kejadian</th>
+                <th>Koordinat</th><th>Sudah Lapor</th><th>Verifikasi</th><th>Aksi</th>
+              </tr></thead>
+              <tbody id="tBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PETA -->
+      <div id="tab-peta" style="display:none">
+        <div class="panel">
+          <div class="ph">
+            <h3><i class="fas fa-map-location-dot"></i> Peta Persebaran</h3>
+            <div class="fb">
+              <select id="mapFInsiden" onchange="renderAdminMap()">
+                <option value="">Semua Insiden</option>
+                <option>Pelecehan Verbal</option><option>Pelecehan Non-verbal / Cyber</option>
+                <option>Pelecehan Fisik</option><option>Pemaksaan / Ancaman</option>
+                <option>Pemerkosaan</option><option>Lainnya</option>
+              </select>
+              <select id="mapBm" onchange="switchAdminBm()">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Satelit</option>
+                <option value="dark">Dark</option>
+                <option value="topo">Topografi</option>
+              </select>
+            </div>
+          </div>
+          <div class="pb"><div id="adminMap"></div></div>
+        </div>
+      </div>
+
+      <!-- STATISTIK -->
+      <div id="tab-statistik" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
+          <div class="panel"><div class="ph"><h3><i class="fas fa-venus-mars"></i> Jenis Kelamin</h3></div><div class="pb"><div class="mc" id="cKelamin"></div></div></div>
+          <div class="panel"><div class="ph"><h3><i class="fas fa-id-badge"></i> Status Korban</h3></div><div class="pb"><div class="mc" id="cStatus"></div></div></div>
+          <div class="panel"><div class="ph"><h3><i class="fas fa-flag"></i> Sudah Lapor ke Kampus</h3></div><div class="pb"><div class="mc" id="cLapor"></div></div></div>
+          <div class="panel"><div class="ph"><h3><i class="fas fa-calendar"></i> Tren per Bulan</h3></div><div class="pb"><div class="mc" id="cBulan"></div></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Drawer detail -->
+<div class="drw-ov" id="drwOv" onclick="closeDrw(event)">
+  <div class="drw" id="drw">
+    <div class="drw-hd">
+      <h3>Detail Laporan</h3>
+      <button class="drw-x" onclick="closeDrw()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div id="drwBody"></div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-ov" id="confOv">
+  <div class="modal">
+    <h3>Hapus Laporan</h3>
+    <p>Laporan ini akan dihapus permanen dari localStorage. Tindakan ini tidak dapat dibatalkan.</p>
+    <div class="modal-act">
+      <button class="btn btn-o" onclick="closeConf()">Batal</button>
+      <button class="btn btn-r" id="confOk">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+/* ── CONFIG (ubah password di sini) ─────────────────────── */
+const ADMIN_PASSWORD = 'ITSafe2025';
+const LS_KEY         = 'itsafeReports';
+const SESSION_KEY    = 'itsafeAdminSession';
+
+/* ── STATE ──────────────────────────────────────────────── */
+let reports   = [];
+let editingId = null;
+let adminMap  = null;
+let adminBase = null;
+let currentTab = 'overview';
+
+const ITS = [-7.2756, 112.7951];
+const BASEMAPS = {
+  osm:       { url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',                                                attr:'© OpenStreetMap', opt:{} },
+  satellite: { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',    attr:'© Esri',          opt:{} },
+  dark:      { url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',                                    attr:'© CARTO',         opt:{subdomains:'abcd'} },
+  topo:      { url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',                                                 attr:'© OpenTopoMap',   opt:{} },
+};
+const IC = {
+  'Pelecehan Verbal':'#FCD34D','Pelecehan Non-verbal / Cyber':'#67E8F9',
+  'Pelecehan Fisik':'#FCA5A5','Pemaksaan / Ancaman':'#FB923C',
+  'Pemerkosaan':'#FDA4AF','Lainnya':'#A78BFA'
+};
+const COLORS = ['#E11D48','#F59E0B','#3B82F6','#22C55E','#A78BFA','#67E8F9','#FB923C','#FDA4AF'];
+
+/* ── AUTH ───────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem(SESSION_KEY) === '1') showDash();
+});
+
+function doLogin() {
+  const v = document.getElementById('pwInput').value;
+  if (v === ADMIN_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    showDash();
+  } else {
+    document.getElementById('loginErr').textContent = 'Password salah. Coba lagi.';
+    document.getElementById('pwInput').value = '';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('loginWrap').style.display = 'flex';
+  document.getElementById('dash').style.display = 'none';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('loginErr').textContent = '';
+}
+
+function showDash() {
+  document.getElementById('loginWrap').style.display = 'none';
+  document.getElementById('dash').style.display = 'block';
+  loadReports();
+  refreshAll();
+}
+
+/* ── DATA ───────────────────────────────────────────────── */
+function loadReports() {
+  reports = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+}
+function saveReports() {
+  localStorage.setItem(LS_KEY, JSON.stringify(reports));
+}
+
+function refreshAll() {
+  loadReports();
+  renderStats();
+  renderRecent();
+  renderBarChart('chartInsiden', countBy('jenis'));
+  if (currentTab === 'laporan')    renderTable();
+  if (currentTab === 'peta')       renderAdminMap();
+  if (currentTab === 'statistik')  renderStatistik();
+}
+
+/* ── TABS ───────────────────────────────────────────────── */
+const TAB_LABELS = { overview:'Overview', laporan:'Data Laporan', peta:'Peta Admin', statistik:'Statistik' };
+
+function showTab(t) {
+  currentTab = t;
+  ['overview','laporan','peta','statistik'].forEach(id => {
+    document.getElementById('tab-' + id).style.display = id === t ? 'block' : 'none';
+  });
+  document.querySelectorAll('.sb-lnk').forEach((l,i) => l.classList.toggle('on', ['overview','laporan','peta','statistik'][i] === t));
+  document.getElementById('tabTitle').textContent = TAB_LABELS[t];
+  if (t === 'laporan')   renderTable();
+  if (t === 'peta')      { setTimeout(() => { initAdminMap(); renderAdminMap(); }, 80); }
+  if (t === 'statistik') renderStatistik();
+}
+
+/* ── OVERVIEW ───────────────────────────────────────────── */
+function renderStats() {
+  const now = new Date();
+  const bulan = reports.filter(r => {
+    const d = new Date(r.createdAt);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const defs = [
+    { icon:'fa-file-lines',  color:'rgba(225,29,72,.12)',    txt:'#FB7185',   val: reports.length,                     lbl:'Total Laporan'    },
+    { icon:'fa-calendar-day',color:'rgba(14,116,144,.12)',   txt:'#67E8F9',   val: bulan,                              lbl:'Bulan Ini'        },
+    { icon:'fa-circle-check',color:'rgba(34,197,94,.12)',    txt:'#4ADE80',   val: reports.filter(r=>r.verified).length,lbl:'Terverifikasi'   },
+    { icon:'fa-clock',       color:'rgba(245,158,11,.12)',   txt:'#FCD34D',   val: reports.filter(r=>!r.verified).length,lbl:'Pending'        },
+    { icon:'fa-map-pin',     color:'rgba(124,58,237,.12)',   txt:'#A78BFA',   val: reports.filter(r=>r.lat&&r.lng).length, lbl:'Berkoordinat' },
+  ];
+  document.getElementById('statsRow').innerHTML = defs.map(d => `
+    <div class="st">
+      <div class="st-ico" style="background:${d.color};color:${d.txt}"><i class="fas ${d.icon}"></i></div>
+      <div class="st-n" style="color:${d.txt}">${d.val}</div>
+      <div class="st-l">${d.lbl}</div>
+    </div>`).join('');
+}
+
+function renderRecent() {
+  const el = document.getElementById('recentList');
+  const r5 = reports.slice(0, 6);
+  if (!r5.length) { el.innerHTML = '<div class="empty-a"><i class="fas fa-inbox"></i><p>Belum ada laporan</p></div>'; return; }
+  el.innerHTML = r5.map(r => {
+    const d = new Date(r.createdAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid var(--bor)">
+      <div>
+        <div style="font-size:.83rem;font-weight:500">${r.jenis}</div>
+        <div style="font-size:.72rem;color:var(--mu)">${esc(r.lokasi)} · ${d}</div>
+      </div>
+      <span class="bdg ${bc(r.jenis)}">${r.kelamin}</span>
+    </div>`;
+  }).join('');
+}
+
+/* ── TABLE ──────────────────────────────────────────────── */
+function renderTable() {
+  const q   = (document.getElementById('srch')?.value || '').toLowerCase();
+  const fi  = document.getElementById('fInsiden')?.value || '';
+  const fs  = document.getElementById('fStatus')?.value || '';
+
+  let data = reports.filter(r => {
+    if (q && !((r.jenis+r.lokasi+r.kelamin+r.status).toLowerCase().includes(q))) return false;
+    if (fi && r.jenis !== fi) return false;
+    if (fs === 'pending'   &&  r.verified) return false;
+    if (fs === 'verified'  && !r.verified) return false;
+    return true;
+  });
+
+  const rc = document.getElementById('rowCount');
+  if (rc) rc.textContent = `(${data.length} baris)`;
+
+  const tbody = document.getElementById('tBody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-a"><i class="fas fa-inbox"></i><p>Tidak ada data</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map((r, i) => {
+    const tgl = new Date(r.createdAt).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    return `<tr>
+      <td>${i+1}</td>
+      <td style="white-space:nowrap">${tgl}</td>
+      <td>${r.kelamin}</td>
+      <td style="font-size:.75rem">${r.status}</td>
+      <td><span class="bdg ${bc(r.jenis)}">${r.jenis}</span></td>
+      <td>${esc(r.lokasi)}</td>
+      <td>${r.tanggal}</td>
+      <td style="font-size:.72rem;font-family:monospace">${r.lat&&r.lng?`<a href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank" style="color:var(--pri-lt)">${r.lat.toFixed(4)},${r.lng.toFixed(4)}</a>`:'–'}</td>
+      <td style="font-size:.75rem">${r.sudahLapor||'–'}</td>
+      <td>${r.verified
+        ? `<span class="bdg bv"><i class="fas fa-circle-check"></i> Verified</span>`
+        : `<span class="bdg bp"><i class="fas fa-clock"></i> Pending</span>`}</td>
+      <td>
+        <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+          <button class="btn btn-o btn-sm" onclick="openDrw('${r.id}')"><i class="fas fa-eye"></i></button>
+          ${r.verified
+            ? `<button class="btn btn-r btn-sm" title="Unverify" onclick="toggleVerify('${r.id}',false)"><i class="fas fa-xmark"></i></button>`
+            : `<button class="btn btn-g btn-sm" title="Verifikasi" onclick="toggleVerify('${r.id}',true)"><i class="fas fa-check"></i></button>`}
+          <button class="btn btn-r btn-sm" onclick="confirmDel('${r.id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── CRUD ───────────────────────────────────────────────── */
+function toggleVerify(id, val) {
+  const r = reports.find(x => String(x.id) === String(id));
+  if (!r) return;
+  r.verified = val;
+  saveReports();
+  refreshAll();
+  showToast(val ? '✓ Terverifikasi.' : 'Verifikasi dibatalkan.', val ? 'success' : 'info');
+}
+
+function confirmDel(id) {
+  document.getElementById('confOk').onclick = () => { delReport(id); closeConf(); };
+  document.getElementById('confOv').classList.add('open');
+}
+function closeConf() { document.getElementById('confOv').classList.remove('open'); }
+
+function delReport(id) {
+  reports = reports.filter(r => String(r.id) !== String(id));
+  saveReports();
+  refreshAll();
+  closeDrw();
+  showToast('Laporan dihapus.', 'success');
+}
+
+function saveEdit() {
+  const r = reports.find(x => String(x.id) === String(editingId));
+  if (!r) return;
+  r.jenis      = document.getElementById('de-jenis').value;
+  r.lokasi     = document.getElementById('de-lokasi').value;
+  r.tanggal    = document.getElementById('de-tgl').value;
+  r.sudahLapor = document.getElementById('de-lapor').value;
+  r.catatan    = document.getElementById('de-cat').value;
+  saveReports();
+  refreshAll();
+  closeDrw();
+  showToast('✓ Laporan diperbarui.', 'success');
+}
+
+/* ── DRAWER ─────────────────────────────────────────────── */
+function openDrw(id) {
+  const r = reports.find(x => String(x.id) === String(id));
+  if (!r) return;
+  editingId = id;
+  const tgl = new Date(r.createdAt).toLocaleString('id-ID');
+  document.getElementById('drwBody').innerHTML = `
+    <div class="df"><label>Tanggal Lapor</label><div class="dv">${tgl}</div></div>
+    <div class="df"><label>Jenis Kelamin</label><div class="dv">${r.kelamin}</div></div>
+    <div class="df"><label>Status</label><div class="dv">${r.status}</div></div>
+    <div class="df"><label>Kronologi</label><div class="dv" style="white-space:pre-wrap;color:var(--su);font-size:.85rem;line-height:1.65">${esc(r.kronologi)}</div></div>
+    <div class="df"><label>Saksi</label><div class="dv">${esc(r.saksi)||'–'}</div></div>
+    <div class="df"><label>Kontak</label><div class="dv">${esc(r.kontak)||'–'}</div></div>
+    ${r.lat&&r.lng?`<div class="df"><label>Koordinat</label><div class="dv"><a href="https://maps.google.com/?q=${r.lat},${r.lng}" target="_blank" style="color:var(--pri-lt)">${r.lat},${r.lng}</a></div></div>`:''}
+    <hr style="border:none;border-top:1px solid var(--bor);margin:.75rem 0"/>
+    <p style="font-size:.7rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem">Edit Data</p>
+    <div class="df"><label>Jenis Insiden</label>
+      <select id="de-jenis">
+        ${['Pelecehan Verbal','Pelecehan Non-verbal / Cyber','Pelecehan Fisik','Pemaksaan / Ancaman','Pemerkosaan','Lainnya']
+          .map(v=>`<option${v===r.jenis?' selected':''}>${v}</option>`).join('')}
+      </select></div>
+    <div class="df"><label>Lokasi Kejadian</label><input id="de-lokasi" value="${esc(r.lokasi)}"/></div>
+    <div class="df"><label>Tanggal Kejadian</label><input type="date" id="de-tgl" value="${r.tanggal}"/></div>
+    <div class="df"><label>Sudah Lapor ke Kampus?</label>
+      <select id="de-lapor">
+        ${['','Belum','Sudah – ditindaklanjuti','Sudah – tidak ditindaklanjuti']
+          .map(v=>`<option value="${v}"${v===r.sudahLapor?' selected':''}>${v||'–'}</option>`).join('')}
+      </select></div>
+    <div class="df"><label>Catatan Admin</label><textarea id="de-cat" rows="3">${esc(r.catatan||'')}</textarea></div>
+    <div class="drw-act">
+      <button class="btn btn-p" onclick="saveEdit()"><i class="fas fa-floppy-disk"></i> Simpan</button>
+      ${r.verified
+        ? `<button class="btn btn-r" onclick="toggleVerify('${id}',false);closeDrw()"><i class="fas fa-xmark"></i> Unverify</button>`
+        : `<button class="btn btn-g" onclick="toggleVerify('${id}',true);closeDrw()"><i class="fas fa-check"></i> Verifikasi</button>`}
+      <button class="btn btn-r" onclick="confirmDel('${id}')"><i class="fas fa-trash"></i> Hapus</button>
+    </div>`;
+  document.getElementById('drwOv').classList.add('open');
+}
+
+function closeDrw(e) {
+  if (e && e.target !== document.getElementById('drwOv')) return;
+  document.getElementById('drwOv').classList.remove('open');
+  editingId = null;
+}
+
+/* ── ADMIN MAP ──────────────────────────────────────────── */
+function initAdminMap() {
+  if (adminMap) return;
+  adminMap  = L.map('adminMap').setView(ITS, 15);
+  adminBase = L.tileLayer(BASEMAPS.osm.url, { attribution: BASEMAPS.osm.attr }).addTo(adminMap);
+}
+
+function renderAdminMap() {
+  if (!adminMap) return;
+  adminMap.eachLayer(l => { if (!(l instanceof L.TileLayer)) adminMap.removeLayer(l); });
+  const fi = document.getElementById('mapFInsiden')?.value || '';
+  let data = reports.filter(r => r.lat && r.lng);
+  if (fi) data = data.filter(r => r.jenis === fi);
+
+  data.forEach(r => {
+    const color = IC[r.jenis] || '#A78BFA';
+    const tgl = new Date(r.createdAt).toLocaleDateString('id-ID');
+    L.circleMarker([r.lat, r.lng], {
+      radius:10, fillColor:color, color:'#fff', weight:2, fillOpacity:.9
+    }).bindPopup(`<div style="font-family:'DM Sans',sans-serif;min-width:190px;font-size:.84rem">
+      <strong style="color:#E11D48">${r.jenis}</strong>
+      ${r.verified ? ' <span style="color:#22c55e">✓</span>' : ''}
+      <br/>${esc(r.lokasi)}<hr style="margin:.3rem 0"/>
+      Kelamin: ${r.kelamin}<br/>Tanggal: ${r.tanggal}<br/>Lapor: ${tgl}
+      <hr style="margin:.3rem 0"/>
+      <button onclick="openDrw('${r.id}')" style="font-size:.72rem;background:#E11D48;color:#fff;border:none;padding:.2rem .55rem;border-radius:5px;cursor:pointer">Detail</button>
+    </div>`).addTo(adminMap);
+  });
+
+  if (data.length && L.heatLayer) {
+    L.heatLayer(data.map(r=>[r.lat,r.lng,1]),{radius:30,blur:18,gradient:{0.1:'#3B82F6',0.5:'#7C3AED',1:'#E11D48'}}).addTo(adminMap);
+  }
+}
+
+function switchAdminBm() {
+  if (!adminMap) return;
+  const bm = BASEMAPS[document.getElementById('mapBm').value];
+  if (adminBase) adminMap.removeLayer(adminBase);
+  adminBase = L.tileLayer(bm.url, { attribution: bm.attr, ...bm.opt }).addTo(adminMap);
+  adminBase.bringToBack();
+}
+
+/* ── STATISTIK ──────────────────────────────────────────── */
+function renderStatistik() {
+  renderBarChart('cKelamin', countBy('kelamin'));
+  renderBarChart('cStatus',  countBy('status'));
+  renderBarChart('cLapor',   countBy('sudahLapor'));
+
+  // Tren per bulan
+  const bc2 = {};
+  reports.forEach(r => {
+    const d = new Date(r.createdAt);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    bc2[k] = (bc2[k]||0) + 1;
+  });
+  const sorted = Object.fromEntries(Object.entries(bc2).sort((a,b)=>a[0].localeCompare(b[0])));
+  renderBarChart('cBulan', sorted);
+}
+
+function countBy(field) {
+  const c = {};
+  reports.forEach(r => { const v = r[field]||'–'; c[v] = (c[v]||0)+1; });
+  return c;
+}
+
+function renderBarChart(elId, counts) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const max   = Math.max(...Object.values(counts), 1);
+  el.innerHTML = Object.entries(counts).map(([lbl, cnt], i) => `
+    <div class="mc-row">
+      <div class="mc-lbl" title="${lbl}">${lbl}</div>
+      <div class="mc-bw"><div class="mc-b" style="width:${(cnt/max)*100}%;background:${COLORS[i%COLORS.length]}"></div></div>
+      <div class="mc-cnt">${cnt}</div>
+    </div>`).join('');
+}
+
+/* ── EXPORT ─────────────────────────────────────────────── */
+function exportCSV() {
+  if (!reports.length) { showToast('Tidak ada data.','error'); return; }
+  const h = ['ID','Dibuat','Kelamin','Status','Jenis','Tanggal','Lokasi','Lat','Lng','Kronologi','Saksi','SudahLapor','Kontak','Verified','Catatan'];
+  const rows = reports.map(r => [
+    r.id, r.createdAt, r.kelamin, r.status, r.jenis, r.tanggal,
+    `"${(r.lokasi||'').replace(/"/g,'""')}"`, r.lat||'', r.lng||'',
+    `"${(r.kronologi||'').replace(/"/g,'""')}"`,
+    r.saksi||'', r.sudahLapor||'', r.kontak||'', r.verified?'Ya':'Tidak', r.catatan||''
+  ]);
+  const csv = '\uFEFF' + [h,...rows].map(r=>r.join(',')).join('\n');
+  dlFile(csv, `itsafe-${now()}.csv`, 'text/csv');
+  showToast('CSV diunduh.','success');
+}
+
+function exportGeoJSON() {
+  const pts = reports.filter(r=>r.lat&&r.lng);
+  if (!pts.length) { showToast('Tidak ada koordinat.','error'); return; }
+  const gj = { type:'FeatureCollection', features: pts.map(r=>({
+    type:'Feature',
+    geometry:{type:'Point',coordinates:[r.lng,r.lat]},
+    properties:{id:r.id,jenis_kelamin:r.kelamin,status:r.status,jenis_insiden:r.jenis,
+      tanggal:r.tanggal,lokasi:r.lokasi,sudah_lapor:r.sudahLapor,verified:r.verified,
+      catatan:r.catatan||'',created_at:r.createdAt}
+  }))};
+  dlFile(JSON.stringify(gj,null,2), `itsafe-${now()}.geojson`, 'application/json');
+  showToast('GeoJSON diunduh.','success');
+}
+
+function loadDemoData() {
+  const demo = [
+    {lat:-7.2756,lng:112.7951,jenis:'Pelecehan Verbal',           kelamin:'Perempuan',lokasi:'Kantin Pusat ITS',          tanggal:'2025-03-10'},
+    {lat:-7.2771,lng:112.7963,jenis:'Pelecehan Fisik',             kelamin:'Perempuan',lokasi:'Gedung Teknik Sipil',        tanggal:'2025-03-22'},
+    {lat:-7.2748,lng:112.7944,jenis:'Pelecehan Non-verbal / Cyber',kelamin:'Laki-laki',lokasi:'Perpustakaan ITS',           tanggal:'2025-04-05'},
+    {lat:-7.2762,lng:112.7978,jenis:'Pemaksaan / Ancaman',         kelamin:'Perempuan',lokasi:'Parkiran Timur',             tanggal:'2025-04-18'},
+    {lat:-7.2735,lng:112.7938,jenis:'Pelecehan Verbal',            kelamin:'Laki-laki',lokasi:'Asrama Mahasiswa',           tanggal:'2025-05-02'},
+    {lat:-7.2780,lng:112.7969,jenis:'Pelecehan Fisik',             kelamin:'Perempuan',lokasi:'Laboratorium Kimia',         tanggal:'2025-05-14'},
+    {lat:-7.2758,lng:112.7958,jenis:'Pemerkosaan',                 kelamin:'Perempuan',lokasi:'Gedung D3 – Tangga Belakang',tanggal:'2025-02-14',verified:true},
+    {lat:-7.2774,lng:112.7947,jenis:'Pelecehan Non-verbal / Cyber',kelamin:'Laki-laki',lokasi:'Co-working Space',           tanggal:'2025-06-20'},
+  ];
+  demo.forEach((d,i) => reports.push({
+    id:Date.now()+i, createdAt:new Date(Date.now()-i*86400000*3).toISOString(),
+    kelamin:d.kelamin, status:'Mahasiswa S1', jenis:d.jenis, tanggal:d.tanggal,
+    lokasi:d.lokasi, lat:d.lat, lng:d.lng,
+    kronologi:'Data demonstrasi.', saksi:'', sudahLapor:'Belum', kontak:'',
+    verified:d.verified||false, catatan:''
+  }));
+  saveReports(); refreshAll();
+  showToast(`${demo.length} data demo dimuat.`, 'success');
+}
+
+/* ── HELPERS ────────────────────────────────────────────── */
+function dlFile(c,fn,t){ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=fn;a.click(); }
+function now(){ return new Date().toISOString().slice(0,10); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function bc(j){
+  if(j?.includes('Verbal')&&!j.includes('Non')) return 'b-verbal';
+  if(j?.includes('Non-verbal')) return 'b-cyber';
+  if(j?.includes('Fisik'))      return 'b-fisik';
+  if(j?.includes('Pemaksaan'))  return 'b-paksa';
+  if(j?.includes('Pemerkosaan'))return 'b-perkosa';
+  return 'b-lain';
+}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  const clr={success:'#22C55E',error:'#EF4444',info:'#60A5FA'};
+  t.style.borderLeft=`4px solid ${clr[type]||clr.info}`;
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',3200);
+}
+</script>
+</body>
+</html>
