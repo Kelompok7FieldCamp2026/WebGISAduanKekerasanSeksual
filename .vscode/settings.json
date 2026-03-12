@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "127.0.0.1",
+            "driver": "PostgreSQL",
+            "username": "postgres",
+            "database": "its_db",
+            "name": "ITSafe DB",
+            "connectString": "postgresql://postgres:dutagtg@127.0.0.1:5432/itsafe_db"
+        }
+    ]
+}
