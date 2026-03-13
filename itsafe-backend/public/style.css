@@ -619,6 +619,12 @@ main { padding-top: 62px; }
 
 /* Location filter */
 .location-filter { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.location-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem;
+}
+.location-toolbar .location-filter { margin-bottom: 0; }
+.location-hint { font-size: .78rem; color: var(--text-soft); }
 .loc-filter-btn {
   padding: .4rem 1rem; border-radius: 999px;
   background: var(--bg3); border: 1px solid var(--border);
@@ -649,7 +655,11 @@ main { padding-top: 62px; }
 .location-img {
   width: 100%; height: 160px; object-fit: cover;
   background: var(--bg3); display: block;
-  position: relative;
+  position: relative; overflow: hidden;
+}
+.location-img img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
 }
 .location-img-placeholder {
   width: 100%; height: 160px;

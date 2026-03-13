@@ -557,11 +557,13 @@
           <h2><i class="fas fa-map-pin"></i> Lokasi Titik Pengaduan Terpasang</h2>
           <p>Titik-titik berikut adalah lokasi rawan yang telah atau akan dipasangi stiker QR pengaduan ITSafe.</p>
         </div>
-        <div class="form-hint">Link Google Maps tersedia di tiap lokasi.</div>
-        <div class="location-filter">
-          <button class="loc-filter-btn active" data-filter="all"       onclick="filterLocations(this)">Semua</button>
-          <button class="loc-filter-btn"        data-filter="terpasang" onclick="filterLocations(this)">Terpasang</button>
-          <button class="loc-filter-btn"        data-filter="rencana"   onclick="filterLocations(this)">Rencana</button>
+        <div class="location-toolbar">
+          <div class="location-hint">Link Google Maps tersedia di tiap lokasi.</div>
+          <div class="location-filter">
+            <button class="loc-filter-btn active" data-filter="all"       onclick="filterLocations(this)">Semua</button>
+            <button class="loc-filter-btn"        data-filter="terpasang" onclick="filterLocations(this)">Terpasang</button>
+            <button class="loc-filter-btn"        data-filter="rencana"   onclick="filterLocations(this)">Rencana</button>
+          </div>
         </div>
         <div class="location-grid" id="locationGrid"></div>
 

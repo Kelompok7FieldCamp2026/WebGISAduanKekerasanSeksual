@@ -254,8 +254,8 @@
       outline: none; cursor: pointer;
     }
 
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: .82rem; }
     thead th {
       padding: .75rem 1rem; text-align: left;
       background: var(--bg4); color: var(--text-muted);
@@ -275,9 +275,9 @@
       padding: .2rem .65rem; border-radius: 20px;
       font-size: .72rem; font-weight: 600; white-space: nowrap;
     }
-    .badge.pending   { background: rgba(245,158,11,.15); color: var(--accent); border: 1px solid rgba(245,158,11,.25); }
-    .badge.verified  { background: rgba(16,185,129,.15); color: #10B981; border: 1px solid rgba(16,185,129,.25); }
-    .badge.rejected  { background: rgba(225,29,72,.15); color: var(--primary-lt); border: 1px solid rgba(225,29,72,.25); }
+    .badge.pending    { background: rgba(245,158,11,.15); color: var(--accent); border: 1px solid rgba(245,158,11,.25); }
+    .badge.in_review  { background: rgba(59,130,246,.15); color: var(--accent-blue); border: 1px solid rgba(59,130,246,.25); }
+    .badge.resolved   { background: rgba(16,185,129,.15); color: #10B981; border: 1px solid rgba(16,185,129,.25); }
     .badge.verbal    { background: rgba(252,211,77,.1); color: #FCD34D; }
     .badge.fisik     { background: rgba(252,165,165,.1); color: #FCA5A5; }
     .badge.other     { background: rgba(167,139,250,.1); color: #A78BFA; }
@@ -605,8 +605,8 @@
             <select class="filter-select" id="filterStatus" onchange="filterTable()">
               <option value="">Semua Status</option>
               <option value="pending">Pending</option>
-              <option value="verified">Terverifikasi</option>
-              <option value="rejected">Ditolak</option>
+              <option value="in_review">Dalam Tinjauan</option>
+              <option value="resolved">Terverifikasi</option>
             </select>
             <select class="filter-select" id="filterJenis" onchange="filterTable()">
               <option value="">Semua Jenis</option>
@@ -786,8 +786,8 @@
           <label>Status Verifikasi Admin</label>
           <select id="dVerifikasi">
             <option value="pending">⏳ Pending</option>
-            <option value="verified">✅ Terverifikasi</option>
-            <option value="rejected">❌ Ditolak</option>
+            <option value="in_review">📝 Dalam Tinjauan</option>
+            <option value="resolved">✅ Terverifikasi</option>
           </select>
         </div>
 
@@ -858,7 +858,7 @@
           <input type="number" id="lLng" placeholder="112.7951" step="0.0001"/>
         </div>
         <div class="detail-item">
-          <label>Status CCTV</label>
+          <label>Status QR Code</label>
           <select id="lStatus">
             <option value="terpasang">Terpasang</option>
             <option value="rencana">Rencana</option>
@@ -911,6 +911,9 @@
 <script>
 // ─── CONFIG ─────────────────────────────────────────────────
 const API_BASE = 'http://127.0.0.1:8000/api';
+const ADMIN_REPORTS_ENDPOINT = `${API_BASE}/reports/admin`;
+const LOCATION_ENDPOINT = `${API_BASE}/locations`;
+const AUTO_REFRESH_MS = 15000;
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'itsafe2026'; // Ganti sesuai kebutuhan
 
@@ -922,9 +925,14 @@ const PER_PAGE = 10;
 let editingId = null;
 let editingLocId = null;
 let adminMap = null;
+let adminReportLayer = null;
+let adminLocLayer = null;
 let confirmCallback = null;
+let isFetchingReports = false;
+let isFetchingLocations = false;
+let autoRefreshTimer = null;
 
-let LOCATIONS = [
+const DEFAULT_LOCATIONS = [
   { id:1,  name:'Perpustakaan Pusat ITS',         desc:'Area parkir dan lobi utama perpustakaan, zona keluar-masuk yang minim pengawasan.',    status:'terpasang', count:3,  icon:'fa-book-open',        lat:-7.2748, lng:112.7944, gmaps:'https://maps.google.com/?q=-7.2748,112.7944' },
   { id:2,  name:'Gedung Teknik Sipil (FTSP)',      desc:'Koridor lantai 2 dan area tangga belakang gedung.',                                    status:'terpasang', count:5,  icon:'fa-building-columns', lat:-7.2771, lng:112.7963, gmaps:'https://maps.google.com/?q=-7.2771,112.7963' },
   { id:3,  name:'Kantin Pusat (Food Court)',       desc:'Area sekitar kantin pusat, terutama pada jam-jam sepi.',                               status:'terpasang', count:2,  icon:'fa-utensils',         lat:-7.2756, lng:112.7951, gmaps:'https://maps.google.com/?q=-7.2756,112.7951' },
@@ -938,6 +946,20 @@ let LOCATIONS = [
   { id:11, name:'Co-working Space / Ruang Bersama',desc:'Area kerja bersama yang buka hingga larut malam.',                                     status:'terpasang', count:2,  icon:'fa-laptop',           lat:-7.2753, lng:112.7985, gmaps:'https://maps.google.com/?q=-7.2753,112.7985' },
   { id:12, name:'Area Parkir Timur',               desc:'Parkiran motor dan mobil bagian timur kampus, minim pencahayaan malam.',               status:'rencana',   count:0,  icon:'fa-square-parking',   lat:-7.2762, lng:112.7978, gmaps:'https://maps.google.com/?q=-7.2762,112.7978' },
 ];
+let LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
+
+const STATUS_LABELS = {
+  pending:   'Pending',
+  in_review: 'Dalam Tinjauan',
+  resolved:  'Terverifikasi',
+};
+
+function normalizeStatus(status) {
+  if (!status) return 'pending';
+  if (status === 'verified') return 'resolved';
+  if (status === 'rejected') return 'in_review';
+  return status;
+}
 
 // ─── LOGIN ───────────────────────────────────────────────────
 function doLogin() {
@@ -954,6 +976,7 @@ function doLogin() {
 }
 
 function doLogout() {
+  stopAutoRefresh();
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('adminApp').classList.remove('visible');
   document.getElementById('loginUser').value = '';
@@ -964,11 +987,16 @@ function doLogout() {
 // ─── INIT ────────────────────────────────────────────────────
 function initAdmin() {
   fetchReports();
+  fetchLocations();
+  startAutoRefresh();
 }
 
-async function fetchReports() {
+async function fetchReports({ skipIfModal = false } = {}) {
+  if (isFetchingReports) return;
+  if (skipIfModal && shouldSkipAutoRefresh()) return;
+  isFetchingReports = true;
   try {
-    const res = await fetch(`${API_BASE}/reports`);
+    const res = await fetch(ADMIN_REPORTS_ENDPOINT);
     const data = await res.json();
     reports = data.map(r => ({
       id:          r.id,
@@ -986,22 +1014,77 @@ async function fetchReports() {
       saksi:       r.saksi || '',
       sudahLapor:  r.sudah_lapor || '',
       kontak:      r.kontak_pelapor || '',
-      status:      r.status || 'pending',
+      status:      normalizeStatus(r.status),
     }));
   } catch(e) {
     // Demo data jika API tidak tersedia
     reports = generateDemoData();
+  } finally {
+    isFetchingReports = false;
   }
-  filteredReports = [...reports];
   renderDashboard();
-  renderTable();
+  filterTable();
   renderLocGrid();
+  if (adminMap) renderAdminMap();
+}
+
+async function fetchLocations({ skipIfModal = false } = {}) {
+  if (isFetchingLocations) return;
+  if (skipIfModal && shouldSkipAutoRefresh()) return;
+  isFetchingLocations = true;
+  try {
+    const res = await fetch(LOCATION_ENDPOINT);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) {
+      LOCATIONS = data.map(l => ({
+        id: l.id,
+        name: l.name,
+        desc: l.desc || '',
+        status: l.status || 'rencana',
+        count: l.count || 0,
+        icon: l.icon || 'fa-location-dot',
+        lat: l.lat,
+        lng: l.lng,
+        gmaps: l.gmaps || '',
+        photo: l.photo || null,
+      }));
+    } else {
+      LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
+    }
+  } catch (e) {
+    LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
+  } finally {
+    isFetchingLocations = false;
+  }
+  renderLocGrid();
+  if (adminMap) renderAdminMap();
+}
+
+function shouldSkipAutoRefresh() {
+  return document.getElementById('detailModal')?.classList.contains('open')
+    || document.getElementById('locModal')?.classList.contains('open')
+    || document.getElementById('confirmOverlay')?.classList.contains('open');
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    fetchReports({ skipIfModal: true });
+    fetchLocations({ skipIfModal: true });
+  }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = null;
 }
 
 function generateDemoData() {
   const jenisArr   = ['Verbal','Non-verbal','Fisik','Pencabulan','Lainnya'];
   const lokasiArr  = ['Perpustakaan Pusat ITS','Kantin Pusat (Food Court)','Asrama Mahasiswa Putra','Masjid Manarul Ilmi ITS','Gedung Teknik Sipil (FTSP)'];
-  const statusArr  = ['pending','verified','rejected'];
+  const statusArr  = ['pending','in_review','resolved'];
   const kelaminArr = ['Laki-laki','Perempuan'];
   const korbanArr  = ['Mahasiswa','Dosen / Tendik','Lainnya (non-ITS)'];
   const waktuArr   = ['Pagi','Siang','Malam'];
@@ -1046,7 +1129,7 @@ function showPage(id, el) {
 function renderDashboard() {
   const total    = reports.length;
   const pending  = reports.filter(r => r.status === 'pending').length;
-  const verified = reports.filter(r => r.status === 'verified').length;
+  const verified = reports.filter(r => r.status === 'resolved').length;
   const now = new Date();
   const bulan = reports.filter(r => {
     const d = new Date(r.tanggal || r.createdAt);
@@ -1300,7 +1383,7 @@ function renderLocGrid() {
         <div class="loc-desc">${l.desc}</div>
         <div class="loc-meta">
           <span class="status-dot ${l.status}"></span>
-          <span class="status-text">${l.status==='terpasang'?'CCTV Terpasang':'Rencana'}</span>
+          <span class="status-text">${l.status==='terpasang'?'QR Terpasang':'Rencana'}</span>
           <span style="margin-left:.5rem;font-size:.72rem;color:var(--text-muted)">${l.count} laporan</span>
           ${l.photo ? '<span style="font-size:.68rem;background:rgba(16,185,129,.1);color:#10B981;border-radius:4px;padding:.1rem .4rem;margin-left:.25rem"><i class="fas fa-image"></i> Foto</span>' : ''}
         </div>
@@ -1353,7 +1436,7 @@ function openEditLoc(id) {
   openModal('locModal');
 }
 
-function saveLoc() {
+async function saveLoc() {
   const data = {
     name:   document.getElementById('lName').value.trim(),
     desc:   document.getElementById('lDesc').value.trim(),
@@ -1371,24 +1454,54 @@ function saveLoc() {
     const existing = LOCATIONS.find(x=>x.id===editingLocId);
     if (existing?.photo) data.photo = existing.photo;
   }
-  if (editingLocId) {
-    const i = LOCATIONS.findIndex(x=>x.id===editingLocId);
-    if (i>=0) LOCATIONS[i] = { ...LOCATIONS[i], ...data };
-    showToast('✅ Titik berhasil diperbarui', 'success');
-  } else {
-    const newId = Math.max(...LOCATIONS.map(l=>l.id), 0)+1;
-    LOCATIONS.push({ id:newId, ...data });
-    showToast('✅ Titik baru ditambahkan', 'success');
+  const isEdit = !!editingLocId;
+  let res;
+  try {
+    const url = isEdit ? `${LOCATION_ENDPOINT}/${editingLocId}` : LOCATION_ENDPOINT;
+    const method = isEdit ? 'PUT' : 'POST';
+    res = await fetch(url, {
+      method,
+      headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch (e) {
+    showToast('⚠ Tidak bisa terhubung ke server', 'error');
+    return;
+  }
+  if (!res.ok) {
+    let msg = 'Gagal menyimpan titik';
+    try {
+      const body = await res.json();
+      if (body?.message) msg = body.message;
+    } catch (e) {}
+    showToast(`⚠ ${msg}`, 'error');
+    return;
   }
   currentPhotoDataUrl = null;
-  renderLocGrid();
   closeModal('locModal');
+  await fetchLocations();
+  showToast(isEdit ? '✅ Titik berhasil diperbarui' : '✅ Titik baru ditambahkan', 'success');
 }
 
 function deleteLoc(id) {
-  confirmCallback = () => {
-    LOCATIONS = LOCATIONS.filter(l=>l.id!==id);
-    renderLocGrid();
+  confirmCallback = async () => {
+    let res;
+    try {
+      res = await fetch(`${LOCATION_ENDPOINT}/${id}`, { method:'DELETE' });
+    } catch (e) {
+      showToast('⚠ Tidak bisa terhubung ke server', 'error');
+      return;
+    }
+    if (!res.ok) {
+      let msg = 'Gagal menghapus titik';
+      try {
+        const body = await res.json();
+        if (body?.message) msg = body.message;
+      } catch (e) {}
+      showToast(`⚠ ${msg}`, 'error');
+      return;
+    }
+    await fetchLocations();
     showToast('🗑️ Titik dihapus', 'error');
   };
   document.getElementById('confirmOverlay').classList.add('open');
@@ -1402,12 +1515,22 @@ function initAdminMap() {
     attribution: '© CARTO', subdomains: 'abcd'
   }).addTo(adminMap);
 
+  adminReportLayer = L.layerGroup().addTo(adminMap);
+  adminLocLayer = L.layerGroup().addTo(adminMap);
+  renderAdminMap();
+}
+
+function renderAdminMap() {
+  if (!adminMap || !adminReportLayer || !adminLocLayer) return;
+  adminReportLayer.clearLayers();
+  adminLocLayer.clearLayers();
+
   // Plot laporan
   reports.forEach(r => {
     if (!r.lat || !r.lng) return;
     L.circleMarker([r.lat, r.lng], {
       radius: 7, color: '#E11D48', fillColor: '#FB7185', fillOpacity: .7, weight: 2
-    }).addTo(adminMap).bindPopup(`<b>#${r.id}</b><br>${r.jenis}<br>${r.lokasi}`);
+    }).addTo(adminReportLayer).bindPopup(`<b>#${r.id}</b><br>${r.jenis}<br>${r.lokasi}`);
   });
 
   // Plot titik pengaduan
@@ -1415,7 +1538,7 @@ function initAdminMap() {
     if (!l.lat || !l.lng) return;
     L.circleMarker([l.lat, l.lng], {
       radius: 9, color: '#F59E0B', fillColor: '#FCD34D', fillOpacity: .5, weight: 2
-    }).addTo(adminMap).bindPopup(`<b>${l.name}</b><br>${l.status}`);
+    }).addTo(adminLocLayer).bindPopup(`<b>${l.name}</b><br>${l.status}`);
   });
 }
 
@@ -1426,9 +1549,9 @@ function formatDate(d) {
 }
 
 function statusBadge(s) {
-  const map = { pending:'pending', verified:'verified', rejected:'rejected' };
-  const label = { pending:'Pending', verified:'Terverifikasi', rejected:'Ditolak' };
-  return `<span class="badge ${map[s]||'pending'}">${label[s]||s}</span>`;
+  const norm = normalizeStatus(s);
+  const label = STATUS_LABELS[norm] || s || 'Pending';
+  return `<span class="badge ${norm || 'pending'}">${label}</span>`;
 }
 
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -1447,6 +1570,12 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 });
 document.getElementById('confirmOverlay').addEventListener('click', e => {
   if (e.target===document.getElementById('confirmOverlay')) closeConfirm();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopAutoRefresh(); return; }
+  fetchReports({ skipIfModal: true });
+  fetchLocations({ skipIfModal: true });
+  startAutoRefresh();
 });
 </script>
 </body>

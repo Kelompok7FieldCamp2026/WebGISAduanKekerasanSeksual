@@ -52,6 +52,13 @@ class ReportController extends Controller
         return response()->json($reports);
     }
 
+    // Ambil semua laporan (untuk admin)
+    public function adminIndex()
+    {
+        $reports = Report::orderBy('created_at', 'desc')->get();
+        return response()->json($reports);
+    }
+
     // Cek status laporan by kode
     public function checkStatus($code)
     {
@@ -71,12 +78,64 @@ class ReportController extends Controller
     {
         $total = Report::count();
         $bulanIni = Report::whereMonth('created_at', now()->month)->count();
-        $terverifikasi = Report::where('status', 'resolved')->count();
+        $terverifikasi = Report::whereIn('status', ['resolved', 'verified'])->count();
 
         return response()->json([
             'total'        => $total,
             'bulan_ini'    => $bulanIni,
             'terverifikasi'=> $terverifikasi,
         ]);
+    }
+
+    // Update laporan (admin)
+    public function update(Request $request, $id)
+    {
+        $report = Report::find($id);
+        if (!$report) {
+            return response()->json(['success' => false, 'message' => 'Laporan tidak ditemukan.'], 404);
+        }
+
+        $validated = $request->validate([
+            'email_its'        => 'nullable|email',
+            'jenis_kelamin'    => 'nullable|in:Laki-laki,Perempuan',
+            'status_korban'    => 'nullable|in:Mahasiswa,Dosen / Tendik,Lainnya (non-ITS)',
+            'jenis_kekerasan'  => 'nullable|in:Verbal,Non-verbal,Fisik,Pemerkosaan,Pencabulan,Lainnya',
+            'tanggal_kejadian' => 'nullable|date',
+            'waktu_kejadian'   => 'nullable|in:Pagi,Siang,Malam',
+            'lokasi_kejadian'  => 'nullable|string',
+            'latitude'         => 'nullable|numeric',
+            'longitude'        => 'nullable|numeric',
+            'kronologi'        => 'nullable|string',
+            'saksi'            => 'nullable|string',
+            'sudah_lapor'      => 'nullable|string',
+            'kontak_pelapor'   => 'nullable|string',
+            'status'           => 'nullable|in:pending,in_review,resolved,verified,rejected',
+        ]);
+
+        if (array_key_exists('status', $validated)) {
+            if ($validated['status'] === 'verified') {
+                $validated['status'] = 'resolved';
+            } elseif ($validated['status'] === 'rejected') {
+                $validated['status'] = 'in_review';
+            }
+        }
+
+        $report->fill($validated);
+        $report->save();
+
+        return response()->json(['success' => true, 'data' => $report]);
+    }
+
+    // Hapus laporan (admin)
+    public function destroy($id)
+    {
+        $report = Report::find($id);
+        if (!$report) {
+            return response()->json(['success' => false, 'message' => 'Laporan tidak ditemukan.'], 404);
+        }
+
+        $report->delete();
+
+        return response()->json(['success' => true]);
     }
 }

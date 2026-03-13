@@ -6,9 +6,12 @@
 
 // ─── API CONFIG ─────────────────────────────────────────────
 const API_BASE = 'http://127.0.0.1:8000/api';
+const REALTIME_INTERVAL = 15000;
 
 // ─── STATE ──────────────────────────────────────────────────
 let reports     = [];   // diisi dari API
+let realtimeTimer = null;
+let isRealtimeRefreshing = false;
 let activeLayer = 'semua';
 let visHeatmap  = true;
 let visPoint    = false;
@@ -62,7 +65,7 @@ const INCIDENT_COLORS = {
 let locationFacultyMap = {};
 
 // ─── LOCATION DATA ──────────────────────────────────────────
-const LOCATIONS = [
+const DEFAULT_LOCATIONS = [
   { id:1,  name:'Perpustakaan Pusat ITS',         desc:'Area parkir dan lobi utama perpustakaan, zona keluar-masuk yang minim pengawasan.',    status:'terpasang', count:3,  icon:'fa-book-open',        lat:-7.2748, lng:112.7944, gmaps:'https://maps.google.com/?q=-7.2748,112.7944' },
   { id:2,  name:'Gedung Teknik Sipil (FTSP)',      desc:'Koridor lantai 2 dan area tangga belakang gedung.',                                    status:'terpasang', count:5,  icon:'fa-building-columns', lat:-7.2771, lng:112.7963, gmaps:'https://maps.google.com/?q=-7.2771,112.7963' },
   { id:3,  name:'Kantin Pusat (Food Court)',       desc:'Area sekitar kantin pusat, terutama pada jam-jam sepi.',                               status:'terpasang', count:2,  icon:'fa-utensils',         lat:-7.2756, lng:112.7951, gmaps:'https://maps.google.com/?q=-7.2756,112.7951' },
@@ -76,6 +79,7 @@ const LOCATIONS = [
   { id:11, name:'Co-working Space / Ruang Bersama',desc:'Area kerja bersama yang buka hingga larut malam.',                                     status:'terpasang', count:2,  icon:'fa-laptop',           lat:-7.2753, lng:112.7985, gmaps:'https://maps.google.com/?q=-7.2753,112.7985' },
   { id:12, name:'Area Parkir Timur',               desc:'Parkiran motor dan mobil bagian timur kampus, minim pencahayaan malam.',               status:'rencana',   count:0,  icon:'fa-square-parking',   lat:-7.2762, lng:112.7978, gmaps:'https://maps.google.com/?q=-7.2762,112.7978' },
 ];
+let LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
 
 const TEAM = [
   { name:'Wisnu Aditya Duane',      nrp:'5016221087', initial:'W', photo:'assets/Wisnu.png' },
@@ -95,10 +99,17 @@ document.addEventListener('DOMContentLoaded', () => {
   buildLocationFacultyMap();
   fetchReports();       // ambil data dari API
   fetchStats();         // ambil statistik dari API
-  renderLocationCards('all');
+  fetchLocations();     // ambil lokasi titik pengaduan
+  startRealtimeSync();  // sinkronisasi realtime (polling)
   renderTeam();
   generateQR();
   initPickerMap();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopRealtimeSync(); return; }
+  refreshRealtime();
+  startRealtimeSync();
 });
 
 // ============================================================
@@ -142,6 +153,61 @@ async function fetchStats() {
   } catch (e) {
     console.error('Gagal ambil statistik:', e);
   }
+}
+
+// Ambil lokasi titik pengaduan dari API
+async function fetchLocations() {
+  try {
+    const res = await fetch(`${API_BASE}/locations`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) {
+      LOCATIONS = data.map(l => ({
+        id: l.id,
+        name: l.name,
+        desc: l.desc || '',
+        status: l.status || 'rencana',
+        count: l.count || 0,
+        icon: l.icon || 'fa-location-dot',
+        lat: l.lat,
+        lng: l.lng,
+        gmaps: l.gmaps || '',
+        photo: l.photo || null,
+      }));
+    } else {
+      LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
+    }
+  } catch (e) {
+    LOCATIONS = DEFAULT_LOCATIONS.map(l => ({ ...l }));
+  }
+  const active = document.querySelector('.loc-filter-btn.active');
+  renderLocationCards(active?.dataset.filter || 'all');
+}
+
+// ============================================================
+// REALTIME SYNC (polling)
+// ============================================================
+async function refreshRealtime() {
+  if (isRealtimeRefreshing) return;
+  isRealtimeRefreshing = true;
+  try {
+    await Promise.all([fetchReports(), fetchStats(), fetchLocations()]);
+  } finally {
+    isRealtimeRefreshing = false;
+  }
+}
+
+function startRealtimeSync() {
+  stopRealtimeSync();
+  realtimeTimer = setInterval(() => {
+    if (document.hidden) return;
+    refreshRealtime();
+  }, REALTIME_INTERVAL);
+}
+
+function stopRealtimeSync() {
+  if (realtimeTimer) clearInterval(realtimeTimer);
+  realtimeTimer = null;
 }
 
 // Kirim laporan ke Laravel
@@ -668,7 +734,10 @@ function renderLocationCards(filter) {
   const list = filter === 'all' ? LOCATIONS : LOCATIONS.filter(l => l.status === filter);
   grid.innerHTML = list.map(loc => `
     <div class="location-card" data-status="${loc.status}">
-      <div class="location-img-placeholder"><i class="fas ${loc.icon}"></i><span>Foto lokasi</span></div>
+      ${loc.photo
+        ? `<div class="location-img"><img src="${loc.photo}" alt="Foto ${esc(loc.name)}" onerror="this.parentElement.innerHTML='<div class=&quot;location-img-placeholder&quot;><i class=&quot;fas ${loc.icon || 'fa-location-dot'}&quot;></i><span>Foto lokasi</span></div>'"/></div>`
+        : `<div class="location-img-placeholder"><i class="fas ${loc.icon || 'fa-location-dot'}"></i><span>Foto lokasi</span></div>`
+      }
       <div class="location-body">
         <div class="location-name">${loc.name}</div>
         <div class="location-desc">${loc.desc}</div>
@@ -679,7 +748,7 @@ function renderLocationCards(filter) {
           </span>
           ${loc.count > 0 ? `<span class="location-count"><i class="fas fa-file-lines"></i> ${loc.count} laporan</span>` : ''}
         </div>
-        <a href="${gmapsLink(loc.name)}" target="_blank" rel="noopener" class="location-gmaps-link"><i class="fas fa-map-location-dot"></i> Buka di Google Maps</a>
+        <a href="${loc.gmaps || gmapsLink(loc.name)}" target="_blank" rel="noopener" class="location-gmaps-link"><i class="fas fa-map-location-dot"></i> Buka di Google Maps</a>
       </div>
     </div>`).join('');
 }
