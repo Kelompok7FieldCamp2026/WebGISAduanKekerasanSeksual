@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ITSafe – Pemetaan Kekerasan Seksual ITS</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-brand">
+      <div class="brand-icon">
+        <img src="assets/logo-its-1.png" alt="Logo ITS" class="logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+        <div class="logo-fallback"><i class="fas fa-shield-halved"></i></div>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">ITSafe</span>
+        <span class="brand-sub">Institut Teknologi Sepuluh Nopember</span>
+      </div>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#home"           class="nav-link active" data-page="home"><i class="fas fa-house"></i><span>Home</span></a></li>
+      <li><a href="#peta"           class="nav-link" data-page="peta"><i class="fas fa-map-location-dot"></i><span>Peta Persebaran</span></a></li>
+      <li><a href="#titikpengaduan" class="nav-link" data-page="titikpengaduan"><i class="fas fa-location-crosshairs"></i><span>Titik Pengaduan</span></a></li>
+      <li><a href="#tentang"        class="nav-link" data-page="tentang"><i class="fas fa-circle-info"></i><span>Tentang</span></a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <!-- ===== PAGE: HOME ===== -->
+    <section id="home" class="page active">
+      <div class="hero">
+        <div class="hero-bg-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+          <div class="shape shape-3"></div>
+        </div>
+        <div class="hero-content">
+          <div class="hero-badge"><i class="fas fa-lock"></i> Anonim &amp; Aman</div>
+          <h1>Laporkan. Catat.<br><span class="gradient-text">Lindungi Bersama.</span></h1>
+          <p>Platform pelaporan dan pemetaan kekerasan seksual di lingkungan ITS. Setiap laporan membantu menciptakan kampus yang lebih aman.</p>
+          <p class="hero-note">ITSafe adalah aplikasi milik Kelompok 7 Field Camp 2026.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary" onclick="scrollToForm()"><i class="fas fa-pen-to-square"></i> Buat Laporan</button>
+            <button class="btn btn-outline" onclick="navigateTo('peta')"><i class="fas fa-map"></i> Lihat Peta</button>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-file-lines"></i></div>
+            <span class="stat-number" id="totalLaporan">0</span>
+            <span class="stat-label">Total Laporan</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
+            <span class="stat-number" id="bulanIni">0</span>
+            <span class="stat-label">Bulan Ini</span>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+            <span class="stat-number" id="terverifikasi">0</span>
+            <span class="stat-label">Terverifikasi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Aduan -->
+      <div class="section-container" id="formSection">
+        <div class="section-header">
+          <h2><i class="fas fa-file-shield"></i> Form Pengaduan</h2>
+          <p>Semua data bersifat rahasia. Identitas pelapor dilindungi sepenuhnya.</p>
+        </div>
+        <div class="form-card">
+          <form id="reportForm" novalidate>
+            <div class="form-grid">
+
+              <div class="form-group full-width">
+                <label>Email ITS *</label>
+                <input type="email" id="emailIts" placeholder="nama@its.ac.id atau nama.pribadi@gmail.com" required/>
+                <span class="form-hint">Untuk warga non-ITS, gunakan email dengan unsur nama.</span>
+              </div>
+
+              <div class="form-group">
+                <label>Jenis Kelamin *</label>
+                <select id="jenisKelamin" required>
+                  <option value="">-- Pilih --</option>
+                  <option>Laki-laki</option>
+                  <option>Perempuan</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Status Korban *</label>
+                <select id="statusKorban" required>
+                  <option value="">-- Pilih --</option>
+                  <option>Mahasiswa</option>
+                  <option>Dosen / Tendik</option>
+                  <option>Lainnya (non-ITS)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Jenis Kekerasan Seksual *</label>
+                <select id="jenisInsiden" required>
+                  <option value="">-- Pilih --</option>
+                  <option>Verbal</option>
+                  <option>Non-verbal</option>
+                  <option>Fisik</option>
+                  <option>Pemerkosaan</option>
+                  <option>Pencabulan</option>
+                  <option>Lainnya</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Tanggal Kejadian *</label>
+                <input type="date" id="tanggalInsiden" required/>
+              </div>
+
+              <div class="form-group">
+                <label>Waktu Kejadian *</label>
+                <select id="waktuInsiden" required>
+                  <option value="">-- Pilih --</option>
+                  <option value="Pagi">Pagi (00.00–08.00 WIB)</option>
+                  <option value="Siang">Siang (08.01–16.00 WIB)</option>
+                  <option value="Malam">Malam (16.01–23.59 WIB)</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Lokasi Kejadian *</label>
+                <select id="lokasiInsiden" required>
+                  <option value="">-- Pilih Fakultas/Departemen --</option>
+                  <optgroup label="FSAD">
+                    <option data-lat="-7.283584734269549" data-lng="112.79415871801066">Fisika</option>
+                    <option data-lat="-7.28388690704827" data-lng="112.79508258186094">Matematika</option>
+                    <option data-lat="-7.285110532400192" data-lng="112.79441679915816">Statistika</option>
+                    <option data-lat="-7.283077628956593" data-lng="112.79486799914876">Kimia</option>
+                    <option data-lat="-7.2850367351199194" data-lng="112.79409553488048">Biologi</option>
+                    <option>Aktuaria</option>
+                  </optgroup>
+                  <optgroup label="FTIRS">
+                    <option data-lat="-7.283550388209697" data-lng="112.79619080613044">Teknik Mesin</option>
+                    <option data-lat="-7.282145374176077" data-lng="112.79649121056292">Teknik Kimia</option>
+                    <option data-lat="-7.28286049966704" data-lng="112.79554834183367">Teknik Fisika</option>
+                    <option data-lat="-7.2828602665540725" data-lng="112.79756536011283">Teknik Sistem dan Industri</option>
+                    <option data-lat="-7.284425192593574" data-lng="112.79725610718006">Teknik Material dan Metalurgi</option>
+                    <option>Teknik Pangan</option>
+                  </optgroup>
+                  <optgroup label="FTSPK">
+                    <option data-lat="-7.280102566583478" data-lng="112.79324082116888">Teknik Sipil</option>
+                    <option data-lat="-7.279796311139403" data-lng="112.79224101251326">Teknik Lingkungan</option>
+                    <option data-lat="-7.279852341717515" data-lng="112.79391315321769">Arsitektur</option>
+                    <option data-lat="-7.279091094757972" data-lng="112.79471466114049">Teknik Geomatika</option>
+                    <option data-lat="-7.279269903254721" data-lng="112.7951609457943">Teknik Geofisika</option>
+                    <option data-lat="-7.278992141657263" data-lng="112.79400970717882">Perencanaan Wilayah Kota</option>
+                  </optgroup>
+                  <optgroup label="FDKBD">
+                    <option data-lat="-7.277694305516472" data-lng="112.7962641071787">Desain Produk</option>
+                    <option data-lat="-7.278843450572832" data-lng="112.79596369676483">Desain Interior</option>
+                    <option data-lat="-7.2778924411731145" data-lng="112.79699588480831">Desain Komunikasi Visual</option>
+                    <option data-lat="-7.27737137659325" data-lng="112.79256371183126">Manajemen Bisnis</option>
+                    <option data-lat="-7.281749976377451" data-lng="112.7953944378718">Studi Pembangunan</option>
+                    <option>Bisnis Digital</option>
+                    <option>Sains Komunikasi</option>
+                  </optgroup>
+                  <optgroup label="FV">
+                    <option data-lat="-7.280102566583478" data-lng="112.79324082116888">Teknik Infrastruktur Sipil</option>
+                    <option data-lat="-7.277809200921026" data-lng="112.79136393044786">Teknik Mesin Industri</option>
+                    <option data-lat="-7.278228845627631" data-lng="112.79224018848593">Teknik Elektro Otomasi</option>
+                    <option data-lat="-7.276831678983027" data-lng="112.7920206699127">Teknik Kimia Industri</option>
+                    <option data-lat="-7.277256041011594" data-lng="112.79189425864926">Teknik Instrumentasi</option>
+                    <option data-lat="-7.277298843596413" data-lng="112.79262382252475">Statistika Bisnis</option>
+                  </optgroup>
+                  <optgroup label="FKK">
+                    <option data-lat="-7.279587718323314" data-lng="112.79557902994848">Teknologi Kedokteran</option>
+                    <option data-lat="-7.279587718323314" data-lng="112.79557902994848">Kedokteran</option>
+                    <option data-lat="-7.279587718323314" data-lng="112.79557902994848">Pendidikan Profesi Dokter</option>
+                  </optgroup>
+                  <option>Lainnya (Pilih langsung di MAP)</option>
+                </select>
+                <span class="form-hint">Jika memilih Lainnya, tentukan lokasi dengan klik pada peta.</span>
+              </div>
+
+              <!-- Leaflet mini picker -->
+              <div class="form-group full-width">
+                <label>Pin Lokasi di Peta <span class="label-opt">wajib jika pilih Lainnya — klik peta untuk pin</span></label>
+                <div id="pickerMapContainer">
+                  <div id="pickerMap"></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Latitude</label>
+                <input type="number" id="lat" placeholder="-7.2756" step="any" readonly/>
+              </div>
+              <div class="form-group">
+                <label>Longitude</label>
+                <input type="number" id="lng" placeholder="112.7951" step="any" readonly/>
+              </div>
+
+              <div class="form-group full-width loc-row">
+                <button type="button" class="btn btn-outline btn-sm" onclick="getLocation()">
+                  <i class="fas fa-location-crosshairs"></i> Gunakan Lokasi Saat Ini
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="clearPin()">
+                  <i class="fas fa-xmark"></i> Hapus Pin
+                </button>
+                <span class="form-hint" id="locStatus"></span>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Kronologi Singkat *</label>
+                <textarea id="kronologi" rows="4" placeholder="Ceritakan secara singkat apa yang terjadi…" required></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Saksi (opsional)</label>
+                <input type="text" id="saksi" placeholder="Ada/tidak ada saksi, inisial saksi…"/>
+              </div>
+
+              <div class="form-group">
+                <label>Sudah lapor ke pihak kampus?</label>
+                <select id="sudahLapor">
+                  <option value="">-- Pilih --</option>
+                  <option>Belum</option>
+                  <option>Sudah – ditindaklanjuti</option>
+                  <option>Sudah – tidak ditindaklanjuti</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Kontak Pelapor (opsional)</label>
+                <input type="text" id="kontakPelapor" placeholder="Email / nomor untuk tindak lanjut"/>
+              </div>
+
+            </div>
+            <div class="form-footer">
+              <label class="checkbox-label">
+                <input type="checkbox" id="consent" required/>
+                <span>Saya menyatakan informasi yang diberikan benar dan bersedia digunakan untuk kepentingan penelitian.</span>
+              </label>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-paper-plane"></i> Kirim Laporan
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Info: data hanya untuk admin -->
+      <div class="section-container">
+        <div class="admin-notice">
+          <i class="fas fa-shield-halved"></i>
+          <div>
+            <strong>Data Aman &amp; Terlindungi</strong>
+            <p>Detail laporan hanya dapat diakses oleh administrator peneliti ITSafe. Publik hanya melihat statistik agregat dan sebaran peta tanpa informasi personal.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: PETA ===== -->
+    <section id="peta" class="page">
+      <div class="section-container">
+        <div class="section-header">
+          <h2><i class="fas fa-map-location-dot"></i> Peta Persebaran Kekerasan Seksual</h2>
+          <p>Visualisasi heatmap interaktif berbasis koordinat laporan. Pilih basemap dan layer sesuai kebutuhan analisis.</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="map-panel">
+
+          <!-- Basemap -->
+          <div class="map-panel-section">
+            <div class="panel-title"><i class="fas fa-globe"></i> Basemap</div>
+            <div class="basemap-row">
+              <button class="bm-btn active" data-bm="osm"       onclick="switchBasemap(this)"><i class="fas fa-map"></i> OpenStreetMap</button>
+              <button class="bm-btn"        data-bm="satellite" onclick="switchBasemap(this)"><i class="fas fa-satellite"></i> Satelit</button>
+              <button class="bm-btn"        data-bm="dark"      onclick="switchBasemap(this)"><i class="fas fa-moon"></i> Dark</button>
+              <button class="bm-btn"        data-bm="topo"      onclick="switchBasemap(this)"><i class="fas fa-mountain"></i> Topografi</button>
+            </div>
+          </div>
+
+          <!-- Layer kategori -->
+          <div class="map-panel-section">
+            <div class="panel-title"><i class="fas fa-layer-group"></i> Layer Berdasarkan Kategori</div>
+            <div class="layer-grid">
+              <label class="layer-card active" data-layer="semua">
+                <input type="radio" name="layerKategori" value="semua" checked onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#7C3AED,#A78BFA)"><i class="fas fa-layer-group"></i></div>
+                <span class="layer-card-label">Semua Insiden</span>
+                <span class="layer-card-count" id="cnt-semua">0</span>
+              </label>
+              <label class="layer-card" data-layer="Laki-laki">
+                <input type="radio" name="layerKategori" value="Laki-laki" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#1D4ED8,#60A5FA)"><i class="fas fa-mars"></i></div>
+                <span class="layer-card-label">Korban Laki-laki</span>
+                <span class="layer-card-count" id="cnt-laki">0</span>
+              </label>
+              <label class="layer-card" data-layer="Perempuan">
+                <input type="radio" name="layerKategori" value="Perempuan" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#BE185D,#F9A8D4)"><i class="fas fa-venus"></i></div>
+                <span class="layer-card-label">Korban Perempuan</span>
+                <span class="layer-card-count" id="cnt-perempuan">0</span>
+              </label>
+              <label class="layer-card" data-layer="Verbal">
+                <input type="radio" name="layerKategori" value="Verbal" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#B45309,#FCD34D)"><i class="fas fa-comment-slash"></i></div>
+                <span class="layer-card-label">Verbal</span>
+                <span class="layer-card-count" id="cnt-verbal">0</span>
+              </label>
+              <label class="layer-card" data-layer="Non-verbal">
+                <input type="radio" name="layerKategori" value="Non-verbal" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#0E7490,#67E8F9)"><i class="fas fa-eye-slash"></i></div>
+                <span class="layer-card-label">Non-verbal</span>
+                <span class="layer-card-count" id="cnt-nonverbal">0</span>
+              </label>
+              <label class="layer-card" data-layer="Fisik">
+                <input type="radio" name="layerKategori" value="Fisik" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#B91C1C,#FCA5A5)"><i class="fas fa-hand-fist"></i></div>
+                <span class="layer-card-label">Fisik</span>
+                <span class="layer-card-count" id="cnt-fisik">0</span>
+              </label>
+              <label class="layer-card" data-layer="Pemerkosaan">
+                <input type="radio" name="layerKategori" value="Pemerkosaan" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#4C0519,#FDA4AF)"><i class="fas fa-triangle-exclamation"></i></div>
+                <span class="layer-card-label">Pemerkosaan</span>
+                <span class="layer-card-count" id="cnt-perkosaan">0</span>
+              </label>
+              <label class="layer-card" data-layer="Pencabulan">
+                <input type="radio" name="layerKategori" value="Pencabulan" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#7C2D12,#FB923C)"><i class="fas fa-handcuffs"></i></div>
+                <span class="layer-card-label">Pencabulan</span>
+                <span class="layer-card-count" id="cnt-pencabulan">0</span>
+              </label>
+              <label class="layer-card" data-layer="Lainnya">
+                <input type="radio" name="layerKategori" value="Lainnya" onchange="switchLayer(this)"/>
+                <div class="layer-card-icon" style="background:linear-gradient(135deg,#6B7280,#D1D5DB)"><i class="fas fa-ellipsis"></i></div>
+                <span class="layer-card-label">Lainnya</span>
+                <span class="layer-card-count" id="cnt-lainnya">0</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="map-panel-row">
+            <div class="map-panel-section flex-1">
+              <div class="panel-title"><i class="fas fa-sliders"></i> Tampilan Layer</div>
+              <div class="vis-toggles">
+                <label class="vis-toggle active" id="tog-heatmap">
+                  <input type="checkbox" checked onchange="toggleVis('heatmap',this)"/>
+                  <i class="fas fa-fire"></i> Heatmap
+                </label>
+                <label class="vis-toggle" id="tog-point">
+                  <input type="checkbox" onchange="toggleVis('point',this)"/>
+                  <i class="fas fa-circle-dot"></i> Titik
+                </label>
+                <label class="vis-toggle" id="tog-cluster">
+                  <input type="checkbox" onchange="toggleVis('cluster',this)"/>
+                  <i class="fas fa-circle-nodes"></i> Cluster
+                </label>
+              </div>
+            </div>
+            <div class="map-panel-section flex-1">
+              <div class="panel-title"><i class="fas fa-filter"></i> Filter Waktu & Bulan</div>
+              <div class="vis-toggles">
+                <select id="filterWaktu" onchange="renderLeafletMap()" class="map-select">
+                  <option value="">Semua Waktu</option>
+                  <option value="Pagi">Pagi</option>
+                  <option value="Siang">Siang</option>
+                  <option value="Malam">Malam</option>
+                </select>
+                <select id="filterBulan" onchange="renderLeafletMap()" class="map-select">
+                  <option value="">Semua Bulan</option>
+                  <option value="1">Januari</option><option value="2">Februari</option>
+                  <option value="3">Maret</option><option value="4">April</option>
+                  <option value="5">Mei</option><option value="6">Juni</option>
+                  <option value="7">Juli</option><option value="8">Agustus</option>
+                  <option value="9">September</option><option value="10">Oktober</option>
+                  <option value="11">November</option><option value="12">Desember</option>
+                </select>
+              </div>
+            </div>
+            <div class="map-panel-section flex-1">
+              <div class="panel-title"><i class="fas fa-download"></i> Export</div>
+              <div class="vis-toggles">
+                <button class="btn btn-outline btn-sm" onclick="exportGeoJSON()"><i class="fas fa-map"></i> GeoJSON (QGIS)</button>
+                <button class="btn btn-outline btn-sm" onclick="loadDemoData()"><i class="fas fa-flask"></i> Data Demo</button>
+                <button class="btn btn-outline btn-sm" onclick="clearDemoData()"><i class="fas fa-trash"></i> Hapus Data Demo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaflet Map -->
+        <div class="map-container" id="mapContainer">
+          <div id="leafletMap"></div>
+          <div class="map-overlay" id="mapOverlay">
+            <div class="map-placeholder">
+              <i class="fas fa-map-marked-alt"></i>
+              <p>Belum ada data koordinat.</p>
+              <p class="small">Pin lokasi saat mengisi form, atau muat data demo.</p>
+              <button class="btn btn-primary btn-sm" onclick="loadDemoData()">
+                <i class="fas fa-flask"></i> Muat Data Demo
+              </button>
+            </div>
+          </div>
+          <div class="map-active-layer" id="mapActiveLayer">
+            <i class="fas fa-layer-group"></i> <span id="activeLayerName">Semua Insiden</span>
+          </div>
+        </div>
+
+        <div class="map-legend-inline">
+          <div class="legend-block legend-heatmap">
+            <div class="legend-title">Legenda Heatmap</div>
+            <div class="legend-scale">
+              <span>Rendah</span>
+              <div class="legend-gradient"></div>
+              <span>Tinggi</span>
+            </div>
+            <div class="legend-analysis" id="heatmapAnalysis">Analisis heatmap akan muncul di sini.</div>
+          </div>
+          <div class="legend-block legend-faculty">
+            <div class="legend-title">Warna Fakultas</div>
+            <div class="legend-faculty-grid">
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-fsad"></span> FSAD</div>
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-ftirs"></span> FTIRS</div>
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-fdkbd"></span> FDKBD</div>
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-fv"></span> FV</div>
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-fkk"></span> FKK</div>
+              <div class="legend-faculty-item"><span class="legend-swatch swatch-lain"></span> Lainnya</div>
+            </div>
+          </div>
+          <div class="legend-block">
+            <div class="legend-title">Simbol</div>
+            <div class="legend-symbols">
+              <div class="legend-item"><i class="fas fa-location-dot"></i> Lokasi Pin Gmaps</div>
+              <div class="legend-item"><span class="legend-dot"></span> Kasus Bulat</div>
+              <div class="legend-item"><span class="legend-line"></span> Batas Kampus ITS</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="map-analysis-row">
+          <div class="analysis-card">
+            <div class="analysis-header">
+              <div class="analysis-title">Analisis Area Tertinggi</div>
+              <div class="analysis-subtitle">Top 5 lokasi dengan intensitas tertinggi berdasarkan filter aktif</div>
+            </div>
+            <ol class="analysis-list" id="topAreasList">
+              <li>
+                <span class="rank-badge">1</span>
+                <span class="area-name">Area 1</span>
+                <span class="area-count">0</span>
+              </li>
+              <li>
+                <span class="rank-badge">2</span>
+                <span class="area-name">Area 2</span>
+                <span class="area-count">0</span>
+              </li>
+              <li>
+                <span class="rank-badge">3</span>
+                <span class="area-name">Area 3</span>
+                <span class="area-count">0</span>
+              </li>
+              <li>
+                <span class="rank-badge">4</span>
+                <span class="area-name">Area 4</span>
+                <span class="area-count">0</span>
+              </li>
+              <li>
+                <span class="rank-badge">5</span>
+                <span class="area-name">Area 5</span>
+                <span class="area-count">0</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- QGIS Info -->
+        <div class="qgis-info">
+          <div class="info-card">
+            <i class="fas fa-circle-info"></i>
+            <div>
+              <strong>Integrasi QGIS</strong>
+              <p>Gunakan tombol <em>Export GeoJSON</em> untuk mengunduh koordinat laporan. File dapat langsung dibuka di QGIS untuk heatmap kernel density, cluster DBSCAN, atau choropleth area kampus.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <i class="fas fa-bolt"></i>
+            <div>
+              <strong>Insight Cepat</strong>
+              <p>Gunakan filter waktu dan bulan untuk melihat pola harian, lalu bandingkan dengan hotspot top 5. Pin fakultas membantu melihat konteks lokasi, sementara titik kasus menyorot jenis insiden yang dominan.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+              <strong>Solusi & Kiat Pencegahan</strong>
+              <p>Prioritaskan patroli dan penerangan di area hotspot, perbanyak titik pelaporan yang mudah diakses, dan lakukan sosialisasi berbasis lokasi serta jam rawan.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: TITIK PENGADUAN ===== -->
+    <section id="titikpengaduan" class="page">
+      <div class="hero hero-sm">
+        <div class="hero-bg-shapes">
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+        </div>
+        <div class="hero-content">
+          <div class="hero-badge"><i class="fas fa-qrcode"></i> QR Code Pengaduan</div>
+          <h1>Titik <span class="gradient-text">Pengaduan Aman</span></h1>
+          <p>Lokasi-lokasi rawan di kampus ITS yang telah dipasangi QR Code pengaduan. Scan untuk melaporkan insiden secara langsung dan anonim.</p>
+        </div>
+      </div>
+
+      <div class="section-container">
+        <div class="qr-section">
+          <div class="section-header">
+            <h2><i class="fas fa-qrcode"></i> QR Code Pengaduan ITSafe</h2>
+            <p>QR Code ini dicetak dan ditempel di lokasi-lokasi rawan. Scan akan langsung membuka form pengaduan.</p>
+          </div>
+          <div class="qr-generator-card">
+            <div class="qr-display">
+              <div class="qr-frame">
+                <div id="qrCodeContainer">
+                  <div class="qr-placeholder-inner">
+                    <i class="fas fa-qrcode"></i>
+                    <p>QR Code akan tampil di sini</p>
+                  </div>
+                </div>
+                <div class="qr-corner qr-tl"></div>
+                <div class="qr-corner qr-tr"></div>
+                <div class="qr-corner qr-bl"></div>
+                <div class="qr-corner qr-br"></div>
+              </div>
+              <div class="qr-url-display" id="qrUrlDisplay">https://its.id/m/ITSafe_Kelompok7FieldCamp2026</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-top:3rem">
+          <h2><i class="fas fa-map-pin"></i> Lokasi Titik Pengaduan Terpasang</h2>
+          <p>Titik-titik berikut adalah lokasi rawan yang telah atau akan dipasangi stiker QR pengaduan ITSafe.</p>
+        </div>
+        <div class="form-hint">Link Google Maps tersedia di tiap lokasi.</div>
+        <div class="location-filter">
+          <button class="loc-filter-btn active" data-filter="all"       onclick="filterLocations(this)">Semua</button>
+          <button class="loc-filter-btn"        data-filter="terpasang" onclick="filterLocations(this)">Terpasang</button>
+          <button class="loc-filter-btn"        data-filter="rencana"   onclick="filterLocations(this)">Rencana</button>
+        </div>
+        <div class="location-grid" id="locationGrid"></div>
+
+        <div id="stickerPrintArea" class="sticker-print-area" style="display:none">
+          <div class="sticker-sheet">
+            <div class="sticker-header-print">
+              <strong>ITSafe – ITS Surabaya</strong>
+              <span>Platform Pengaduan Kekerasan Seksual Kampus</span>
+            </div>
+            <div class="sticker-grid-print" id="stickerGridPrint"></div>
+            <div class="sticker-footer-print">Scan QR di atas untuk melaporkan insiden secara anonim dan aman.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE: TENTANG ===== -->
+    <section id="tentang" class="page">
+      <div class="about-hero">
+        <div class="about-hero-bg"></div>
+        <div class="about-hero-content">
+          <div class="hero-badge"><i class="fas fa-shield-halved"></i> Penelitian ITS 2026</div>
+          <h1>Tentang <span class="gradient-text">ITSafe</span></h1>
+          <p>Platform pemetaan dan pengaduan kekerasan seksual berbasis spasial di lingkungan Institut Teknologi Sepuluh Nopember Surabaya. Dikembangkan oleh Kelompok 7 Field Camp 2026.</p>
+        </div>
+      </div>
+
+      <div class="section-container">
+        <div class="about-section">
+          <h2 class="about-section-title"><span class="section-number">01</span> Latar Belakang</h2>
+          <div class="about-text-card">
+            <p>ITS merupakan kampus besar dengan aktivitas tinggi, sehingga diperlukan upaya pencegahan kekerasan seksual yang berbasis data dan mudah diakses. Selama ini, pelaporan masih terbatas dan informasi spasial mengenai lokasi serta waktu kejadian belum tergambar dengan baik.</p>
+            <p><strong>ITSafe</strong> dikembangkan sebagai platform pelaporan anonim sekaligus pemetaan spasial untuk mengidentifikasi area rawan dan mendukung kebijakan pencegahan yang lebih tepat sasaran.</p>
+          </div>
+        </div>
+
+        <div class="about-section">
+          <h2 class="about-section-title"><span class="section-number">02</span> Tujuan &amp; Metode Penelitian</h2>
+          <div class="about-cards-row">
+            <div class="about-info-card">
+              <div class="about-info-icon"><i class="fas fa-bullseye"></i></div>
+              <h3>Tujuan</h3>
+              <ul>
+                <li>Menganalisis kerawanan berdasarkan lokasi dan waktu kejadian.</li>
+                <li>Merumuskan strategi pencegahan berbasis bukti di lingkungan ITS.</li>
+                <li>Mengoptimalkan pemetaan WebGIS untuk visualisasi zona rawan pagi, siang, malam.</li>
+              </ul>
+            </div>
+            <div class="about-info-card">
+              <div class="about-info-icon"><i class="fas fa-microscope"></i></div>
+              <h3>Metode</h3>
+              <ul>
+                <li>Tahap persiapan: identifikasi masalah, studi literatur, penentuan data, survei awal.</li>
+                <li>Tahap akuisisi: data primer (kuesioner, GPS, laporan ITSafe) dan data sekunder.</li>
+                <li>Tahap pengolahan: pengembangan website, integrasi data spasial, peta persebaran & heatmap.</li>
+                <li>Tahap analisis: analisis spasial-temporal dan rekomendasi kebijakan.</li>
+                <li>Tahap penyajian: WebGIS ITSafe, peta persebaran, heatmap, dan QR Code.</li>
+              </ul>
+            </div>
+            <div class="about-info-card">
+              <div class="about-info-icon"><i class="fas fa-user-shield"></i></div>
+              <h3>Etika Penelitian</h3>
+              <ul>
+                <li>Semua data pelapor bersifat anonim dan rahasia</li>
+                <li>Data hanya digunakan untuk kepentingan penelitian akademik</li>
+                <li>Tidak ada identitas personal yang dipublikasikan</li>
+                <li>Pelapor berhak menarik laporan kapan saja</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-section">
+          <h2 class="about-section-title"><span class="section-number">03</span> Tim Peneliti</h2>
+          <div class="team-grid" id="teamGrid"></div>
+        </div>
+
+        <div class="about-section">
+          <h2 class="about-section-title"><span class="section-number">04</span> Kontak &amp; Dukungan</h2>
+          <div class="contact-card">
+            <div class="contact-item">
+              <i class="fas fa-envelope"></i>
+              <div><strong>Email Penelitian</strong><span>itsafe.research@its.ac.id</span></div>
+            </div>
+            <div class="contact-item">
+              <i class="fas fa-university"></i>
+              <div><strong>Institusi</strong><span>Institut Teknologi Sepuluh Nopember, Surabaya</span></div>
+            </div>
+            <div class="contact-item">
+              <i class="fas fa-phone"></i>
+              <div><strong>Hotline Kampus (PPKS ITS)</strong><span>0811-3333-6000</span></div>
+            </div>
+            <div class="contact-item">
+              <i class="fas fa-landmark"></i>
+              <div><strong>Landasan Hukum</strong><span>Permendikbudristek No. 30 Tahun 2021</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
+  <link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
+  <link  rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>                                                                       
